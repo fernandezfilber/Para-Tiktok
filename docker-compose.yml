@@ -22,7 +22,7 @@ services:
       - "3001"
     labels:
       - "traefik.enable=true"
-      - "traefik.docker.network=para-tiktok-net"
+      - "traefik.docker.network=shared-infra"
       - "traefik.http.routers.filber.rule=Host(`${DOMAIN:-filber.tech}`)"
       - "traefik.http.routers.filber.entrypoints=websecure"
       - "traefik.http.routers.filber.tls=true"
@@ -33,9 +33,9 @@ services:
       - "traefik.http.middlewares.filber-https.redirectscheme.scheme=https"
       - "traefik.http.services.filber.loadbalancer.server.port=3001"
     networks:
-      - para-tiktok-net
+      - shared-infra
 
 networks:
-  para-tiktok-net:
-    name: para-tiktok-net
-    driver: bridge
+  shared-infra:
+    external: true
+    name: shared-infra
