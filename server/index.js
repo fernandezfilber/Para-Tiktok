@@ -228,20 +228,41 @@ async function generateAnswer(question, history) {
   const messages = [
     {
       role: "system",
-      content: `Eres Filber, un bot en español con humor pícaro, irónico y troll, pero con crueldad. Responde primero lo útil y luego añade una broma breve. Nunca uses insultos discriminatorios, amenazas, acoso, ni te burles de tragedias o vulnerabilidades personales. Si no sabes algo, dilo con claridad. No inventes datos ni afirmes que una búsqueda encontró algo que no aparece en las fuentes. Contexto de búsqueda reciente:\n${sourceText}`
+      content: `Eres Filber, un bot en español con humor pícaro, irónico y troll, pero sin crueldad. Responde primero lo útil y luego añade una broma breve. Nunca uses insultos discriminatorios, amenazas, acoso, ni te burles de tragedias o vulnerabilidades personales. Si no sabes algo, dilo con claridad. No inventes datos ni afirmes que una búsqueda encontró algo que no aparece en las fuentes. Contexto de búsqueda reciente:\n${sourceText}`
     },
     ...history.map(({ role, content }) => ({ role, content })),
     { role: "user", content: question }
   ];
-  const response = await fetch("https://api.groq.com/openai/v1/chat/completions", {
-    method: "POST",
-    headers: { authorization: `Bearer ${process.env.GROQ_API_KEY}`, "content-type": "application/json" },
-    signal: AbortSignal.timeout(30000),
-    body: JSON.stringify({ model: process.env.GROQ_MODEL || "llama-3.3-70b-versatile", messages, temperature: 0.85, max_tokens: 900 })
-  });
+  const model = process.env.GROQ_MODEL || "llama-3.3-70b-versatile";
+  let response;
+  try {
+    response = await fetch("https://api.groq.com/openai/v1/chat/completions", {
+      method: "POST",
+      headers: { authorization: `Bearer ${process.env.GROQ_API_KEY}`, "content-type": "application/json" },
+      signal: AbortSignal.timeout(30000),
+      body: JSON.stringify({ model, messages, temperature: 0.85, max_tokens: 900 })
+    });
+  } catch (error) {
+    console.error("Groq request could not reach provider:", error.message);
+    throw new HttpError(502, "No se pudo conectar con el servicio de IA. Inténtalo de nuevo en un momento.", "AI_CONNECTION_FAILED");
+  }
   if (!response.ok) {
-    const reason = response.status === 429 ? "La IA está ocupada por ahora. Espera un momento y vuelve a intentarlo." : "No se pudo obtener una respuesta de la IA. Inténtalo de nuevo.";
-    throw new HttpError(response.status === 429 ? 429 : 502, reason, "AI_REQUEST_FAILED");
+    const providerError = await response.json().catch(() => ({}));
+    const providerCode = providerError.error?.code || providerError.error?.type || "unknown";
+    const providerMessage = String(providerError.error?.message || "No provider message").slice(0, 300);
+    console.error("Groq request failed:", { status: response.status, model, providerCode, providerMessage });
+    const failures = {
+      400: [502, "Groq rechazó la solicitud. Revisa el modelo configurado y vuelve a intentarlo.", "AI_BAD_REQUEST"],
+      401: [503, "Groq rechazó la clave configurada. Crea una clave nueva y actualiza GROQ_API_KEY en el VPS.", "AI_INVALID_API_KEY"],
+      403: [503, "La cuenta o la clave de Groq no tiene permiso para usar este modelo.", "AI_ACCESS_DENIED"],
+      404: [503, "Groq no reconoce el modelo configurado. Revisa GROQ_MODEL.", "AI_MODEL_NOT_FOUND"],
+      429: [429, "Groq alcanzó su límite de uso o cuota. Revisa la facturación y los límites de la cuenta.", "AI_QUOTA_OR_RATE_LIMIT"],
+      500: [502, "Groq tuvo un error temporal. Inténtalo de nuevo más tarde.", "AI_PROVIDER_ERROR"],
+      502: [502, "Groq tuvo un error temporal. Inténtalo de nuevo más tarde.", "AI_PROVIDER_ERROR"],
+      503: [502, "Groq no está disponible temporalmente. Inténtalo de nuevo más tarde.", "AI_PROVIDER_UNAVAILABLE"]
+    };
+    const [status, message, code] = failures[response.status] || [502, "Groq no pudo completar la solicitud. Revisa los logs del servidor.", "AI_REQUEST_FAILED"];
+    throw new HttpError(status, message, code);
   }
   const result = await response.json();
   const answer = result.choices?.[0]?.message?.content?.trim();
