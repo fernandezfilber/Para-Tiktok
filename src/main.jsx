@@ -60,7 +60,7 @@ function ConsentLogin({ onLogin }) {
           </label>
           <label htmlFor="username">Tu nombre de usuario</label>
           <input id="username" autoComplete="nickname" maxLength="24" value={username} onChange={(e) => setUsername(e.target.value)} placeholder="Ej. FilberFan" required />
-          <p className="fine-print">Sin contraseña: es un perfil anónimo en este navegador, no una identidad protegida. Verifica WhatsApp si quieres continuar tras tus 5 mensajes gratis.</p>
+          <p className="fine-print">Sin contraseña: es un perfil anónimo en este navegador, no una identidad protegida. Verifica WhatsApp si quieres continuar tras tus 50 mensajes gratis.</p>
           {error && <p className="error" role="alert">{error}</p>}
           <button className="primary-button" disabled={busy || !termsAccepted || !cookiesAccepted}>{busy ? "Entrando…" : "Aceptar y entrar"}</button>
         </form>

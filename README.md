@@ -34,7 +34,7 @@ Vite serves the React client and proxies `/api` to Express. The production Docke
 ## Product and privacy notes
 
 - Login by username alone is intentionally an anonymous demo profile, not secure authentication: anyone who loses the browser session cannot recover it, and a username is not proof of identity. WhatsApp verification binds a number to the active profile.
-- New profiles have 5 AI messages. Verified profiles are limited to 30 messages per UTC day to control abuse and provider cost.
+- New profiles have 50 AI messages. Verified profiles are limited to 30 messages per UTC day to control abuse and provider cost.
 - User messages, assistant responses, source links, consent timestamps, and a verified phone number are stored in MySQL. Users can delete their profile and associated chat data in the app.
 - Consent text is a starter summary, not legal advice or a substitute for reviewed terms/privacy disclosures. Adapt it to your service, retention policy, and local law before public launch.
 - Audio is held in memory only for transcription and is not saved; its transcription is stored as the user's chat message.
