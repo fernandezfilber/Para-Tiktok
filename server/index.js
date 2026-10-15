@@ -30,6 +30,7 @@ if (!redisUrl) {
 
 const redisClient = createClient({ url: redisUrl });
 redisClient.on("error", (error) => console.error("Redis connection error:", error.message));
+await redisClient.connect();
 
 function createRateLimiter(prefix, options) {
   return rateLimit({
@@ -407,7 +408,6 @@ app.use((error, req, res, next) => {
   });
 });
 
-await redisClient.connect();
 const server = app.listen(port, "0.0.0.0", () => console.log(`Filber escuchando en el puerto ${port}`));
 
 async function shutdown() {
